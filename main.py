@@ -8,6 +8,7 @@ from sklearn.metrics import pairwise_distances
 
 patient = "1107"
 df = get_panel('IF1', patient)
+df.set_index('cell.ID')
 
 
 def graph_by_cell_type(df, cell_types=None):
@@ -49,9 +50,12 @@ def connected_component_from_candidate(tree, TLS_candidate, distance=30):
 
         return visited
 
-    # Wybór punktu startowego
-    start_point = df[df['cell.ID'].isin(TLS_candidate.nodes)]['nucleus.x', 'nucleus.y'].iloc[0]
-    component = DFS(tree, start_point)
+    # start_point = df[df['cell.ID'].isin(TLS_candidate.nodes)]['nucleus.x', 'nucleus.y'].iloc[0]
+    start_cell_id = next(iter(TLS_candidate))
+    start_coordinates = df.loc[start_cell_id, ['nucleus.x', 'nucleus.y']].values
+
+    # Teraz 'coordinates' to współrzędne punktu o danym 'cell_id' w KDTree
+    component = DFS(tree, start_coordinates)
 
     print("Spójna składowa zawierająca punkt startowy to:", df.iloc[list(component)])
 
@@ -59,15 +63,16 @@ def connected_component_from_candidate(tree, TLS_candidate, distance=30):
 
 
 # KDTree wszystkich komórek
-dist_matrix = pairwise_distances(df[['nucleus.x', 'nucleus.y']])
-tree = KDTree(dist_matrix)
+# dist_matrix = pairwise_distances(df[['nucleus.x', 'nucleus.y']])
+tree = KDTree(df[['nucleus.x', 'nucleus.y']])
 
 # Spójne składowe, będące kandydatami na TLS
 G_TLS_candidates = graph_by_cell_type(df, ['Tcell', 'Bcell', 'BnTcell'])
 TLS_components = nx.connected_components(G_TLS_candidates)
 
 for candidate in TLS_components:
-    connected_component_from_candidate(tree, candidate)
+    if len(candidate) > 5:
+        connected_component_from_candidate(tree, candidate)
 
 
 
