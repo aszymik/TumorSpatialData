@@ -1,19 +1,17 @@
 import networkx as nx
 import plotly.graph_objects as go
 from sklearn import neighbors
-from scipy.spatial import KDTree
 from helper import get_panel
 
 patient = "1107"
 df = get_panel('IF1', patient)
+celltypes = df['celltype'].unique()
 
-
-# TODO: KDTree zamiast zwykłego grafu bo to mega długo trwa
 
 # graf tylko nad wybranym typem komórek (np. CK)
 # chcemy sklastrowac wektory udzialu procentowego poszczegolnych typów komórek
 
-# elementy na grafie TLS – szukamy sąsaidów w ogólnym grafie
+# elementy na grafie TLS – szukamy sąsiadów w ogólnym grafie
 # potem mozemy zobaczyc ile u naszych pacjentów jest danego klastra, jakies ciekawe podsumowanie
 
 
@@ -23,50 +21,27 @@ def graph_by_cell_type(df, cell_types=None):
     if cell_types is not None:
         df = df[df['celltype'].isin(cell_types)]
 
-    adj_matrix = neighbors.radius_neighbors_graph(df[['nucleus.x', 'nucleus.y']], radius=30)  # macierz sąsiedztwa
+    adj_matrix = neighbors.radius_neighbors_graph(df[['nucleus.x', 'nucleus.y']], radius=30)  # macierz sąsiedztwa  
+    G = nx.from_scipy_sparse_array(adj_matrix)
 
-    G = nx.Graph()  # Create an empty graph
-
-    # Dodajemy dane o komórkach
-    for i, (cell_id, cell_type, x, y) in enumerate(zip(df['cell.ID'], df['celltype'], df['nucleus.x'], df['nucleus.y'])):
-        G.add_node(cell_id)  # Add node with cell_id
-        G.nodes[cell_id]['celltype'] = cell_type
-        G.nodes[cell_id]['pos'] = x, y
-
-    # Add edges based on adjacency matrix
-    for i, row in enumerate(adj_matrix.toarray()):
-        for j, connected in enumerate(row):
-            if connected:
-                G.add_edge(df.iloc[i]['cell.ID'], df.iloc[j]['cell.ID'])
-
-    return G
-
-    G = nx.from_scipy_sparse_array(adj_matrix)  # graf na podstawie macierzy
+    index_to_cell_id = df['cell.ID'].to_dict()
+    G = nx.relabel_nodes(G, index_to_cell_id)
 
     # Dodajemy dane o komórkach
-    for i, (cell_id, cell_type, x, y) in enumerate(zip(df['cell.ID'], df['celltype'], df['nucleus.x'], df['nucleus.y'])):
-        G.nodes[i]['cell_id'] = cell_id
-        G.nodes[i]['celltype'] = cell_type
-        G.nodes[i]['pos'] = x, y
+    for cell_id, cell_type, x, y in zip(df['cell.ID'], df['celltype'], df['nucleus.x'], df['nucleus.y']):
+        if cell_id in G.nodes:
+            G.nodes[cell_id]['celltype'] = cell_type
+            G.nodes[cell_id]['pos'] = x, y
 
     return G
 
 
 G_all = graph_by_cell_type(df)
-all_connected_components = nx.connected_components(G_all)
+all_connected_components = list(nx.connected_components(G_all))
 G_TLS_candidates = graph_by_cell_type(df, ['Tcell', 'Bcell', 'BnTcell'])
 TLS_components = nx.connected_components(G_TLS_candidates)
 
-candidates = {}
-
-# # dla każdej spójnej składowej w kandydatach na TLS
-# for cell in G_TLS_candidates:
-#     for connected_component in all_connected_components:
-#         # sprawdzamy, czy jakikolwiek z sąsiadów należy do spójnej składowej
-#         if cell in connected_component:
-#         # if any(cell in connected_component for cell in candidate):
-#             G_TLS_candidates.add_nodes_from(connected_component)
-
+candidates = set()
 
 for candidate in TLS_components:
     if len(candidate) < 5:
@@ -74,45 +49,22 @@ for candidate in TLS_components:
     start_cell_id = next(iter(candidate))
     for component in all_connected_components:
         if start_cell_id in component:
-            candidates.add(component)
+            candidates.add(tuple(component))
 
-print(candidates)
-
-# for i in G_TLS_candidates.nodes:
-#     cell_id = G_TLS_candidates.nodes[i]['cell_id']
-#     print(f'{cell_id=}')
-#     for connected_component in all_connected_components:
-#         print(f'{connected_component=}')
-#         # sprawdzamy, czy jakikolwiek z sąsiadów należy do spójnej składowej
-#         if cell_id in connected_component.nodes['cell_id']:
-#         # if any(cell in connected_component for cell in candidate):
-#             G_TLS_candidates.add_nodes_from(connected_component)   
+# kandydaci to teraz zbior krotek z id komórki
+# wsrod kazdego kandydata (o jakiejs sensownej dlugosci) chcemy go zwizualizowac 
+# i obliczyc procentowy udzial poszczegolnych typow komorek w tym klastrze
+# moze z kazdego zrobic graf i zwizualizowac je na jednym obrazku?        
 
 
-# cell_id_to_node = {data['cell_id']: node for node, data in G_all.nodes(data=True)}
-# print(f'{cell_id_to_node=}')
-
-# # dla każdej spójnej składowej w kandydatach na TLS
-# for cell_id in G_TLS_candidates:
-#     for connected_component in all_connected_components:
-#         # sprawdzamy, czy jakikolwiek z sąsiadów należy do spójnej składowej
-#         if cell_id_to_node[cell_id] in connected_component:
-#             G_TLS_candidates.add_nodes_from(connected_component)      
-
-
-print(f'{G_TLS_candidates=}')
+print(f'{all_connected_components=}')
 G = G_TLS_candidates
 
-# cell_type_color_map = {
-#     'Tcell': 'red',
-#     'Bcell': 'blue',
-#     'BnTcell': 'green',
-# }
 
 # node_colors = [cell_type_color_map[G.nodes[i]['celltype']] for i in G.nodes]
 # node_colors = [G.nodes[i]['celltype'] for i in G.nodes]
 
-celltypes = list(set(G.nodes[i]['celltype'] for i in G.nodes))
+# celltypes = list(set(G.nodes[i]['celltype'] for i in G.nodes))
 celltype_to_number = {celltype: number for number, celltype in enumerate(celltypes)}
 
 # Teraz możemy użyć tego słownika do kolorowania wierzchołków
