@@ -13,7 +13,7 @@ def graph_by_cell_type(df, cell_types=None):
     if cell_types is not None:
         df = df[df['celltype'].isin(cell_types)]
 
-    adj_matrix = neighbors.radius_neighbors_graph(df[['nucleus.x', 'nucleus.y']], radius=30)  # macierz sąsiedztwa  
+    adj_matrix = neighbors.radius_neighbors_graph(df[['nucleus.x', 'nucleus.y']], radius=30, include_self=True)  # macierz sąsiedztwa  
     G = nx.from_scipy_sparse_array(adj_matrix)
 
     index_to_cell_id = df['cell.ID'].to_dict()
