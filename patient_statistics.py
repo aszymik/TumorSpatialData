@@ -48,15 +48,15 @@ axes[0].set_ylabel('')
 axes[0].tick_params(labelbottom=False)
 
 axes[1].set_facecolor('#f1f1f1')
-axes[1].set_yticklabels(ax.get_yticklabels(), fontsize=8)
 axes[1].set_xlabel('Cell percentage')
+axes[1].set_xlim(0, 1)
+axes[1].set_yticklabels(ax.get_yticklabels(), fontsize=8)
 axes[1].set_ylabel('Patient')
 axes[1].yaxis.set_label_position("right")
 
 handles, labels = axes[1].get_legend_handles_labels()
 axes[1].legend().remove()
 fig.legend(handles, labels, loc='upper left', fontsize=7, bbox_to_anchor=(0.015, 0.92))
-
 
 fig.suptitle('Cell distribution in TLS candidates')
 plt.subplots_adjust(wspace=0.01)
