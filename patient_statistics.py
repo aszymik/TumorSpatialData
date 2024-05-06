@@ -1,63 +1,93 @@
-import pandas as pd 
-import matplotlib.pyplot as plt 
-from scipy.cluster.hierarchy import dendrogram, linkage
+import pandas as pd
+import plotly.figure_factory as ff
+import plotly.graph_objects as go
+import plotly.express as px
+
+from plotly.subplots import make_subplots
+from scipy.cluster.hierarchy import ward
+from helper import *
+from main import TLS_candidates
+
+# Przykładowa lista kolorów
 
 
-# Df preprocessing
-columns = ['patient', 'component_size', 'other', 'CD15-Tumor', 'CD15+Tumor', 'Tcell', 'Bcell', 'BnTcell', 'Macrophage', 'Neutrophil', 'DC']
-df = pd.read_csv('if_data/cell_type_percentages_in_TLSs.tsv', sep='\t', index_col=0)
-df = df.reindex(columns=columns)
-df = df.drop('component_size', axis=1)
+def all_patients_clusters_plot():
+    df = pd.read_csv('if_data/cell_type_percentages_in_TLSs.tsv', sep='\t', index_col=0)
+    df = df.drop('component_size', axis=1)
 
-# Hclust
-linked = linkage(df.drop('patient', axis=1), 'ward')
+    # Dendrogram
+    colors = [IF1_cell_mapping[celltype] for celltype in ('Macrophage', 'CD15-Tumor', 'other', 'Bcell', 'CD15+Tumor', 'Tcell')]
+    fig = ff.create_dendrogram(df.drop('patient', axis=1), orientation='right', linkagefun=ward, labels=df.index, color_threshold=1.5, colorscale=colors)
+    dendro_side = go.Figure(data=fig['data'])
 
-# Plot
-fig, axes = plt.subplots(1, 2, figsize=(10, 5), gridspec_kw={'width_ratios': [1, 2]})
+    # Bar plot
+    df = df.reindex(fig['layout']['yaxis']['ticktext'])
+    df.index = df.index.astype(str)
 
-# Dendrogram
-dendro = dendrogram(linked,
-                    orientation='left',
-                    distance_sort='descending',
-                    no_labels=True,
-                    show_leaf_counts=False,
-                    ax=axes[0])
+    bar_side = go.Figure()
+    for col in df.drop('patient', axis=1).columns:
+        bar_side.add_trace(go.Bar(y=fig['layout']['yaxis']['tickvals'], x=df[col], name=col, orientation='h',
+                                  marker=dict(color=IF1_cell_mapping[col])))
 
-sample_order = dendro['ivl']
-df.index = df.index.astype(str)
-df = df.reindex(sample_order)
+    # Combine dendrogram and bar plot
+    fig = make_subplots(rows=1, cols=2, shared_yaxes=True, horizontal_spacing=0)
 
-# Bar plot
-df.plot( 
-	x = 'patient', 
-	kind = 'barh', 
-	stacked = True,
-    ax=axes[1]
-)
+    # Add data
+    for i in range(len(dendro_side['data'])):
+        dendro_side['data'][i].showlegend = False
+        fig.add_trace(dendro_side['data'][i], row=1, col=1)
 
-# Adjust axes
-for ax in axes:
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['bottom'].set_visible(False)
-    ax.spines['left'].set_visible(False)
-    ax.yaxis.tick_right()
-    ax.tick_params(bottom=False, right=False)
+    for i in range(len(bar_side['data'])):
+        fig.add_trace(bar_side['data'][i], row=1, col=2)
 
-axes[0].set_ylabel('')
-axes[0].tick_params(labelbottom=False)
+    fig.layout.xaxis.showticklabels = False
+    fig.layout.yaxis.showticklabels = False
+    fig.layout.xaxis2.title = 'Cell percentage'
+    fig.layout.xaxis2.range = [0, 1]
+    fig.layout.barmode = 'stack'
+    fig.layout.title = 'Cell distribution in TLS candidates'
+    fig.layout.plot_bgcolor = 'rgba(0,0,0,0)'
 
-axes[1].set_facecolor('#f1f1f1')
-axes[1].set_xlabel('Cell percentage')
-axes[1].set_xlim(0, 1)
-axes[1].set_yticklabels(ax.get_yticklabels(), fontsize=8)
-axes[1].set_ylabel('Patient')
-axes[1].yaxis.set_label_position("right")
+    fig.update_layout(autosize=False, width=900, height=600)
+    return fig
 
-handles, labels = axes[1].get_legend_handles_labels()
-axes[1].legend().remove()
-fig.legend(handles, labels, loc='upper left', fontsize=7, bbox_to_anchor=(0.015, 0.92))
 
-fig.suptitle('Cell distribution in TLS candidates')
-plt.subplots_adjust(wspace=0.01)
-plt.show()
+def patient_bar_plot(patient):
+    df = pd.read_csv('if_data/cell_type_percentages_in_TLSs.tsv', sep='\t', index_col=0)
+    df = df[df['patient'] == int(patient)]
+    df = df.drop('component_size', axis=1)
+
+    bar_plot = go.Figure()
+    for col in df.drop('patient', axis=1).columns:
+        bar_plot.add_trace(go.Bar(y=df.index, x=df[col], name=col, orientation='h',
+                              marker=dict(color=IF1_cell_mapping[col])))
+
+    bar_plot.layout.xaxis.title = 'Cell percentage'
+    bar_plot.layout.xaxis.range = [0, 1]
+    bar_plot.layout.barmode = 'stack'
+    bar_plot.layout.title = f'Cell distribution in patient {patient} TLSs'
+    bar_plot.layout.plot_bgcolor = 'rgba(0,0,0,0)'
+
+    bar_plot.update_layout(autosize=False, width=900, height=600)
+    return bar_plot
+
+
+def patient_TLSs_plot(df):
+    G_all, candidates = TLS_candidates(df)
+
+    node_x = []
+    node_y = []
+    node_labels = []
+    for node in G_all.nodes():
+        x, y = G_all.nodes[node]['pos']
+        node_x.append(x)
+        node_y.append(y)
+        if any(node in candidate for candidate in candidates):
+            node_labels.append(G_all.nodes[node]['celltype'])  # koloruj według typu komórki
+        else:
+            node_labels.append('not applicable')  # koloruj szaro pozostałe wierzchołki
+
+
+    fig = px.scatter(x=node_x, y=node_y, color=node_labels, color_discrete_map=IF1_cell_mapping, title=f'')
+    fig.update_layout(autosize=False, width=800, height=600)
+    return fig

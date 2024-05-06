@@ -3,7 +3,8 @@ import os
 import plotly.express as px
 import streamlit as st
 
-from helper import get_panel
+from helper import *
+from patient_statistics import *
 
 # funckja przechodzaca przez wszystkich pacjentów
 # za dwa tyg (tylko prezentacja)
@@ -11,58 +12,48 @@ from helper import get_panel
 file_path = "if_data/"
 
 patients = []
-for filename in os.listdir(file_path + "IF1"):
+for filename in os.listdir(file_path + 'IF1'):
     patients.append(filename[:4])
 
-
+st.set_page_config(layout="wide")
 st.title('Tumor spatial data analysis')
 with st.sidebar:
     st.title("Select parameters")
     patient = st.sidebar.selectbox('Select a patient', patients)
+    panel = st.sidebar.selectbox('Select a panel', ['IF1', 'IF2', 'IF3'])
 
-data_IF1 = get_panel('IF1', patient)
-data_IF2 = get_panel('IF2', patient)
-data_IF3 = get_panel('IF3', patient)
+data = get_panel(panel, patient)
 
-
-st.markdown('### IF1 panel')
-
-cell_types = ['all'] + list(data_IF1.celltype.unique())
+cell_types = ['all'] + list(data.celltype.unique())
 cell_types_opt = st.multiselect(
     'Choose cell types',
     cell_types,
-    default='all'  # set 'all' as the default selected option
+    default = 'all'
 )
 
 # if 'all' is selected, use all cell types; otherwise, use the selected ones
 if 'all' in cell_types_opt:
-    data_IF1_filtered = data_IF1
+    data_filtered = data
 else:
-    data_IF1_filtered = data_IF1[data_IF1.celltype.isin(cell_types_opt)]
+    data_filtered = data[data.celltype.isin(cell_types_opt)]
 
-fig_IF1 = px.scatter(data_IF1_filtered, x='nucleus.x', y='nucleus.y', color="celltype", title=f'Patient {patient} IF1 panel')
-fig_IF1.update_layout(autosize=False, width=800, height=600)
-st.plotly_chart(fig_IF1)
+fig = px.scatter(data_filtered, x='nucleus.x', y='nucleus.y', color="celltype", color_discrete_map=IF1_cell_mapping, title=f'Patient {patient} {panel} panel')
+fig.update_layout(autosize=False, width=800, height=600)
+st.plotly_chart(fig)
 
-st.markdown('### IF2 panel')
+st.markdown(f'### Patient {patient} TLSs')
 
-fig_IF2 = px.scatter(data_IF2, x='nucleus.x', y='nucleus.y', color="celltype", title=f'Patient {patient} IF2 panel')
-fig_IF2.update_layout(autosize=False, width=800, height=600)
-st.plotly_chart(fig_IF2)
+# Wizualizacja TLSów
+TLS_graph = patient_TLSs_plot(data)
+st.plotly_chart(TLS_graph)
 
-st.markdown('### IF3 panel')
+# Bar plot TLSów pacjenta
+bar_plot = patient_bar_plot(patient)
+st.plotly_chart(bar_plot)
 
-fig_IF3 = px.scatter(data_IF3, x='nucleus.x', y='nucleus.y', color="celltype", title=f'Patient {patient} IF3 panel')
-fig_IF3.update_layout(autosize=False, width=800, height=600)
-st.plotly_chart(fig_IF3)
-
-# features = [
-#       'cell.ID', 'nucleus.x', 'nucleus.y', 'CD15.score.normalized',
-#       'CK.score.normalized', 'CD3.score.normalized', 'CD11c.score.normalized',
-#       'CD20.score.normalized', 'CD163.score.normalized', 'tissue.type',
-#       'phenotype'
-#   ]
-
-
+# Klastrowanie TLSów wszystkich pacjentów
+st.markdown('### TLS differentiation')
+all_patients_clusters = all_patients_clusters_plot()
+st.plotly_chart(all_patients_clusters, use_container_width=True)
 
 

@@ -48,5 +48,5 @@ IF1_cell_mapping = {"other": rgb_to_hex((190, 190, 190)),
                     "BnTcell": rgb_to_hex((236, 95, 42)),
                     "Neutrophil": rgb_to_hex((0, 40, 245)),
                     "Macrophage": rgb_to_hex((97, 209, 62)),
-                    "DC": rgb_to_hex((49, 113, 30))}
-
+                    "DC": rgb_to_hex((49, 113, 30)),
+                    "not applicable": rgb_to_hex((214, 214, 214))}
