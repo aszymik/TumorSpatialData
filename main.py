@@ -6,13 +6,13 @@ from helper import *
 CELL_TYPES = ['other', 'CD15-Tumor', 'CD15+Tumor', 'Tcell', 'Bcell', 'BnTcell', 'Macrophage', 'Neutrophil', 'DC']
 
 
-def graph_by_cell_type(df, cell_types=None):
+def graph_by_cell_type(df, cell_types=None, radius=30):
     """Tworzy graf sąsiedztwa dla wybranych typów komórek"""
 
     if cell_types is not None:
         df = df[df['celltype'].isin(cell_types)]
 
-    adj_matrix = neighbors.radius_neighbors_graph(df[['nucleus.x', 'nucleus.y']].values, radius=30, include_self=True)  # macierz sąsiedztwa 
+    adj_matrix = neighbors.radius_neighbors_graph(df[['nucleus.x', 'nucleus.y']].values, radius=radius, include_self=True)  # macierz sąsiedztwa 
     G = nx.from_scipy_sparse_array(adj_matrix)
 
     index_to_cell_id = df['cell.ID'].to_dict()
