@@ -19,17 +19,15 @@ def graph_by_cell_type(df, cell_types=None):
     G = nx.relabel_nodes(G, index_to_cell_id)
 
     # Dodajemy dane o komórkach
-    for cell_id, cell_type, x, y in zip(df['cell.ID'], df['celltype'], df['nucleus.x'], df['nucleus.y']):
+    for cell_id, cell_type in zip(df['cell.ID'], df['celltype']):
         if cell_id in G.nodes:
             G.nodes[cell_id]['celltype'] = cell_type
-            G.nodes[cell_id]['pos'] = x, y
-        else:
-            G.add_node(cell_id, celltype=cell_type, pos=(x, y))    
-
+        else:   
+            G.add_node(cell_id, celltype=cell_type)
     return G
 
 
-def TLS_candidates(df, BnT_cell_min=5, component_min=20):
+def TLS_candidates(df, component_min=20):
     """Zwraca spójne składowe grafu wzbogacone w komórki odpornościowe"""
     G_all = graph_by_cell_type(df)
     all_connected_components = list(nx.connected_components(G_all))
@@ -38,7 +36,7 @@ def TLS_candidates(df, BnT_cell_min=5, component_min=20):
 
     candidates = set()
     for candidate in TLS_components:
-        if len(candidate) < BnT_cell_min:
+        if len(candidate) < component_min:
             continue
         for component in all_connected_components:
             if len(component) >= component_min:
@@ -86,9 +84,4 @@ if __name__ == '__main__':
         df = pd.concat((df, patient_cell_percentage), ignore_index=True)  # dodajemy do ogólnej ramki danych
 
     df.to_csv('if_data/cell_type_percentages_in_TLSs.tsv', sep='\t')
-
-
-# # testy
-# patient_df = get_panel('IF1', '1107')
-# G_all, candidates = TLS_candidates(patient_df)
 

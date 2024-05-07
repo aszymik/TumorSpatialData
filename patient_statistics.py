@@ -6,9 +6,7 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 from scipy.cluster.hierarchy import ward
 from helper import *
-from main import TLS_candidates
-
-# Przykładowa lista kolorów
+from main import *
 
 
 def all_patients_clusters_plot():
@@ -17,7 +15,7 @@ def all_patients_clusters_plot():
 
     # Dendrogram
     colors = [IF1_cell_mapping[celltype] for celltype in ('Macrophage', 'CD15-Tumor', 'other', 'Bcell', 'CD15+Tumor', 'Tcell')]
-    fig = ff.create_dendrogram(df.drop('patient', axis=1), orientation='right', linkagefun=ward, labels=df.index, color_threshold=1.5, colorscale=colors)
+    fig = ff.create_dendrogram(df.drop('patient', axis=1), orientation='right', linkagefun=ward, labels=df.index, color_threshold=1.35, colorscale=colors)
     dendro_side = go.Figure(data=fig['data'])
 
     # Bar plot
@@ -45,7 +43,7 @@ def all_patients_clusters_plot():
     fig.layout.xaxis2.title = 'Cell percentage'
     fig.layout.xaxis2.range = [0, 1]
     fig.layout.barmode = 'stack'
-    fig.layout.title = 'Cell distribution in TLS candidates'
+    fig.layout.title = 'Cell type distribution in TLS candidates'
     fig.layout.plot_bgcolor = 'rgba(0,0,0,0)'
 
     fig.update_layout(autosize=False, width=900, height=600)
@@ -65,29 +63,69 @@ def patient_bar_plot(patient):
     bar_plot.layout.xaxis.title = 'Cell percentage'
     bar_plot.layout.xaxis.range = [0, 1]
     bar_plot.layout.barmode = 'stack'
-    bar_plot.layout.title = f'Cell distribution in patient {patient} TLSs'
-    bar_plot.layout.plot_bgcolor = 'rgba(0,0,0,0)'
+    bar_plot.layout.title = f'Cell type distribution in patient {patient} TLS'
 
     bar_plot.update_layout(autosize=False, width=900, height=600)
     return bar_plot
 
 
-def patient_TLSs_plot(df):
-    G_all, candidates = TLS_candidates(df)
+def patient_TLS_plot(df):
+    _, candidates = TLS_candidates(df)
+    candidate_nodes = set()
+    for candidate in candidates:
+        candidate_nodes.update(candidate)
 
-    node_x = []
-    node_y = []
-    node_labels = []
-    for node in G_all.nodes():
-        x, y = G_all.nodes[node]['pos']
-        node_x.append(x)
-        node_y.append(y)
-        if any(node in candidate for candidate in candidates):
-            node_labels.append(G_all.nodes[node]['celltype'])  # koloruj według typu komórki
-        else:
-            node_labels.append('not applicable')  # koloruj szaro pozostałe wierzchołki
+    df = df.copy()
+    df.loc[~df.index.isin(candidate_nodes), 'celltype'] = 'not applicable'  # kolorujemy wg typu komórki tylko elementy z TLSów
 
-
-    fig = px.scatter(x=node_x, y=node_y, color=node_labels, color_discrete_map=IF1_cell_mapping, title=f'')
+    fig = px.scatter(df, x='nucleus.x', y='nucleus.y', opacity=1.0, color='celltype', color_discrete_map=IF1_cell_mapping, title=f'')
+    fig.layout.title = 'Spatial distribution of TLS in tissue'
     fig.update_layout(autosize=False, width=800, height=600)
     return fig
+
+
+
+def analyse_bcell_neighborhood(df):
+    """Analyses the cell type of B-cell neighborhoods and visualizes it"""
+
+    G_all = graph_by_cell_type(df)
+    b_cell_df = df[df['celltype'] == 'Bcell']
+
+    neighbors_data = []
+    for _, row in b_cell_df.iterrows():
+        # Count each cell type
+        celltype_counts = {cell_type: 0 for cell_type in CELL_TYPES}
+        cell_neighbors = list(G_all.neighbors(row['cell.ID']))
+        for neighbor in cell_neighbors:
+            celltype = G_all.nodes[neighbor]['celltype']
+            celltype_counts[celltype] += 1
+
+        # Calculate the percentage of each cell type
+        num_neighbors = len(cell_neighbors)
+        neighbors_dict = {cell_type: (count / num_neighbors) for cell_type, count in celltype_counts.items()}
+        
+        # Add 'nucleus.x' and 'nucleus.y' from the original dataframe
+        neighbors_dict['cell.ID'] = row['cell.ID']
+        neighbors_dict['nucleus.x'] = row['nucleus.x']
+        neighbors_dict['nucleus.y'] = row['nucleus.y']
+
+        neighbors_data.append(neighbors_dict)
+
+    # Tworzymy DataFrame
+    neighbors_df = pd.DataFrame(neighbors_data, columns=['cell.ID', 'nucleus.x', 'nucleus.y', 'other', 'CD15-Tumor', 'CD15+Tumor', 'Tcell', 'Bcell', 'BnTcell', 'Macrophage', 'Neutrophil', 'DC'])
+    neighbors_df = neighbors_df.sort_values(by=['nucleus.x', 'nucleus.y']).reset_index()
+    neighbors_df = neighbors_df.drop(columns=['index'])
+
+
+    bar_plot = go.Figure()
+    for col in neighbors_df.drop(columns=['cell.ID', 'nucleus.x', 'nucleus.y']).columns:
+        bar_plot.add_trace(go.Bar(y=neighbors_df.index, x=neighbors_df[col], name=col, orientation='h',
+                              marker=dict(color=IF1_cell_mapping[col])))
+
+    bar_plot.layout.xaxis.title = 'Cell percentage'
+    bar_plot.layout.xaxis.range = [0, 1]
+    bar_plot.layout.barmode = 'stack'
+    bar_plot.layout.title = f'Cell type distribution across B-cell neighbors'
+    bar_plot.update_layout(autosize=False, width=700, height=500)
+
+    return bar_plot
