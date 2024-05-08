@@ -36,7 +36,8 @@ if 'all' in cell_types_opt:  # if 'all' is selected, use all cell types; otherwi
 else:
     data_filtered = data[data.celltype.isin(cell_types_opt)]
 
-fig = px.scatter(data_filtered, x='nucleus.x', y='nucleus.y', opacity=1.0, color="celltype", color_discrete_map=IF1_cell_mapping, title=f'Patient {patient} {panel} panel visualisation')
+fig = px.scatter(data_filtered, x='nucleus.x', y='nucleus.y', opacity=0.6, color="celltype", color_discrete_map=IF1_cell_mapping, title=f'Patient {patient} {panel} panel visualisation')
+fig.update_traces(marker_size=3)
 fig.update_layout(autosize=False, width=800, height=600)
 st.plotly_chart(fig)
 

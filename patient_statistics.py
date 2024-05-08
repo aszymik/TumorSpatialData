@@ -78,8 +78,8 @@ def patient_TLS_plot(df):
     df = df.copy()
     df.loc[~df.index.isin(candidate_nodes), 'celltype'] = 'not applicable'  # kolorujemy wg typu komórki tylko elementy z TLSów
 
-    fig = px.scatter(df, x='nucleus.x', y='nucleus.y', opacity=1.0, color='celltype', color_discrete_map=IF1_cell_mapping, title=f'')
-    fig.layout.title = 'Spatial distribution of TLS in tissue'
+    fig = px.scatter(df, x='nucleus.x', y='nucleus.y', opacity=0.5, color='celltype', color_discrete_map=IF1_cell_mapping, title='Spatial distribution of TLS in the tissue')
+    fig.update_traces(marker_size=3)
     fig.update_layout(autosize=False, width=800, height=600)
     return fig
 
