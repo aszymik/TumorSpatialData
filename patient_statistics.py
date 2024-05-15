@@ -14,7 +14,7 @@ def all_patients_clusters_plot():
     df = df.drop('component_size', axis=1)
 
     # Dendrogram
-    colors = [IF1_cell_mapping[celltype] for celltype in ('Macrophage', 'CD15-Tumor', 'other', 'Bcell', 'CD15+Tumor', 'Tcell')]
+    colors = [IF1_cell_mapping[celltype] for celltype in ('Macrophage', 'Tcell', 'CD15-Tumor', 'Bcell', 'CD15+Tumor', 'other')]
     fig = ff.create_dendrogram(df.drop('patient', axis=1), orientation='right', linkagefun=ward, labels=df.index, color_threshold=1.35, colorscale=colors)
     dendro_side = go.Figure(data=fig['data'])
 
@@ -73,11 +73,10 @@ def patient_TLS_plot(df):
     _, candidates = TLS_candidates(df)
     candidate_nodes = set()
     for candidate in candidates:
-        candidate_nodes.update(candidate)
+        candidate_nodes.update(candidate)  
 
     df = df.copy()
-    df.loc[~df.index.isin(candidate_nodes), 'celltype'] = 'not applicable'  # kolorujemy wg typu komórki tylko elementy z TLSów
-
+    df.loc[~df['cell.ID'].isin(candidate_nodes), 'celltype'] = 'not a TLS'  # kolorujemy wg typu komórki tylko elementy z TLSów
     fig = px.scatter(df, x='nucleus.x', y='nucleus.y', opacity=0.5, color='celltype', color_discrete_map=IF1_cell_mapping, title='Spatial distribution of TLS in the tissue')
     fig.update_traces(marker_size=3)
     fig.update_layout(autosize=False, width=800, height=600)
