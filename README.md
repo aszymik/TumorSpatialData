@@ -8,7 +8,8 @@ Wyniki przedstawione są w aplikacji Streamlit, w której użytkownik może wybr
 
 W aplikacji przedstawione są dodatkowo różne statystyki dotyczące zarówno TLS danego pacjenta, jak i zbiorczych danych zebranych od wszystkich badanych pacjentów. Dzięki temu możliwe jest porównywanie wyników i lepsze zrozumienie kontekstu badań oraz natury i różnorodności struktur TLS.
 
-![app screen](graphics/app_screen.png 'Screen z aplikacji')
+![app screen](graphics/app_screen.png)
+*Screen z aplikacji*
 
 ## Struktura projektu
 
