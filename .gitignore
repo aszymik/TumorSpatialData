@@ -1,6 +1,8 @@
 /__pycache__
 /do_usuniecia
-/if_data
+/if_data/IF1/
+/if_data/IF2/
+/if_data/IF3/
 /venv
 .DS_Store
 coloring_celltypes_code_snippet.py

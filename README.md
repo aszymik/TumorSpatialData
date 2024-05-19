@@ -4,6 +4,8 @@
 
 Ten projekt skupia się na analizie i wizualizacji TLS (Tertiary Lymphoid Structures) w próbkach biopsji pacjentów z nowotworami.
 
+![app screen](graphics/app_screen.png)
+
 ## Struktura projektu
 
 Projekt składa się z trzech głównych skryptów: 
