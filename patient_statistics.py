@@ -5,17 +5,20 @@ import plotly.express as px
 
 from plotly.subplots import make_subplots
 from scipy.cluster.hierarchy import ward
+from plotly.graph_objs import Figure
 from helper import *
 from main import *
 
 
-def all_patients_clusters_plot():
-    df = pd.read_csv('if_data/cell_type_percentages_in_TLSs.tsv', sep='\t', index_col=0)
+def all_patients_clusters_plot() -> Figure:
+    """Procentowy udział typów komórek w TLS-ach wszystkich pacjentów"""
+
+    df = pd.read_csv('if_data/cell_type_percentages_in_TLS.tsv', sep='\t', index_col=0)
     df = df.drop('component_size', axis=1)
 
     # Dendrogram
-    colors = [IF1_cell_mapping[celltype] for celltype in ('Macrophage', 'Tcell', 'CD15-Tumor', 'Bcell', 'CD15+Tumor', 'other')]
-    fig = ff.create_dendrogram(df.drop('patient', axis=1), orientation='right', linkagefun=ward, labels=df.index, color_threshold=1.35, colorscale=colors)
+    colors = [IF1_cell_mapping[celltype] for celltype in ('Macrophage', 'Tcell', 'other', 'Bcell', 'CD15+Tumor', 'CD15-Tumor')]
+    fig = ff.create_dendrogram(df.drop('patient', axis=1), orientation='right', linkagefun=ward, labels=df.index, color_threshold=3.5, colorscale=colors)
     dendro_side = go.Figure(data=fig['data'])
 
     # Bar plot
@@ -27,10 +30,10 @@ def all_patients_clusters_plot():
         bar_side.add_trace(go.Bar(y=fig['layout']['yaxis']['tickvals'], x=df[col], name=col, orientation='h',
                                   marker=dict(color=IF1_cell_mapping[col])))
 
-    # Combine dendrogram and bar plot
+    # Łączymy dendrogram i bar plot
     fig = make_subplots(rows=1, cols=2, shared_yaxes=True, horizontal_spacing=0)
 
-    # Add data
+    # Dodajemy dane
     for i in range(len(dendro_side['data'])):
         dendro_side['data'][i].showlegend = False
         fig.add_trace(dendro_side['data'][i], row=1, col=1)
@@ -50,8 +53,10 @@ def all_patients_clusters_plot():
     return fig
 
 
-def patient_bar_plot(patient):
-    df = pd.read_csv('if_data/cell_type_percentages_in_TLSs.tsv', sep='\t', index_col=0)
+def patient_bar_plot(patient: str) -> Figure:
+    """Procentowy udział typów komórek w TLS-ach danego pacjenta"""
+
+    df = pd.read_csv('if_data/cell_type_percentages_in_TLS.tsv', sep='\t', index_col=0)
     df = df[df['patient'] == int(patient)]
     df = df.drop('component_size', axis=1)
 
@@ -69,7 +74,9 @@ def patient_bar_plot(patient):
     return bar_plot
 
 
-def patient_TLS_plot(df):
+def patient_TLS_plot(df: pd.DataFrame) -> Figure:
+    """Wizualizuje TLS-y pacjenta na tkance"""
+
     _, candidates = TLS_candidates(df)
     candidate_nodes = set()
     for candidate in candidates:
@@ -83,27 +90,26 @@ def patient_TLS_plot(df):
     return fig
 
 
-
-def analyse_bcell_neighborhood(df):
-    """Analyses the cell type of B-cell neighborhoods and visualizes it"""
+def analyse_bcell_neighborhood(df: pd.DataFrame) -> Figure:
+    """Analizuje typy komórek w sąsiedztwie B-celli i wizualizuje je"""
 
     G_all = graph_by_cell_type(df)
     b_cell_df = df[df['celltype'] == 'Bcell']
 
     neighbors_data = []
     for _, row in b_cell_df.iterrows():
-        # Count each cell type
+        # Zliczamy kazdy typ komórki
         celltype_counts = {cell_type: 0 for cell_type in CELL_TYPES}
         cell_neighbors = list(G_all.neighbors(row['cell.ID']))
         for neighbor in cell_neighbors:
             celltype = G_all.nodes[neighbor]['celltype']
             celltype_counts[celltype] += 1
 
-        # Calculate the percentage of each cell type
+        # Obliczamy procentowy udział
         num_neighbors = len(cell_neighbors)
         neighbors_dict = {cell_type: (count / num_neighbors) for cell_type, count in celltype_counts.items()}
         
-        # Add 'nucleus.x' and 'nucleus.y' from the original dataframe
+        # Dodajemy 'nucleus.x' i 'nucleus.y'  z oryginalnej ramki danych
         neighbors_dict['cell.ID'] = row['cell.ID']
         neighbors_dict['nucleus.x'] = row['nucleus.x']
         neighbors_dict['nucleus.y'] = row['nucleus.y']

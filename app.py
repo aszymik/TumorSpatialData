@@ -1,4 +1,3 @@
-import pandas as pd
 import os
 import plotly.express as px
 import streamlit as st
@@ -6,17 +5,15 @@ import streamlit as st
 from helper import *
 from patient_statistics import *
 
-file_path = "if_data/"
+FILE_PATH = 'if_data/'
+PATIENTS = get_all_patients('IF1')
 
-patients = []
-for filename in os.listdir(file_path + 'IF1'):
-    patients.append(filename[:4])
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout='wide')
 st.title('Tumor immune environment analysis')
 with st.sidebar:
     st.title("Select parameters")
-    patient = st.sidebar.selectbox('Select a patient', patients)
+    patient = st.sidebar.selectbox('Select a patient', PATIENTS)
     panel = st.sidebar.selectbox('Select a panel', ['IF1', 'IF2', 'IF3'])
 
 st.markdown('### Spatial distribution of cell types in chosen tissue fragment')
@@ -31,7 +28,7 @@ cell_types_opt = st.multiselect(
     default = 'all'
 )
 
-if 'all' in cell_types_opt:  # if 'all' is selected, use all cell types; otherwise, use the selected ones
+if 'all' in cell_types_opt:  # jeśli wybrane jest 'all', bierzemy wszystkie typy, w przeciwnym razie tylko wybrane
     data_filtered = data
 else:
     data_filtered = data[data.celltype.isin(cell_types_opt)]
@@ -48,12 +45,13 @@ tissue_bar = px.bar(cell_counts, x='celltype', y='count', color='celltype', colo
 tissue_bar.update_layout(autosize=False, width=800, height=600)
 st.plotly_chart(tissue_bar)
 
-
+# Informacje o TLS
 st.markdown('### Tertiary Lymphoid Structures')
 st.markdown('Tertiary Lymphoid Structures (TLS) are crucial components in the spatial arrangement of tumor tissues. They are a form of lymphoid tissue that emerge in non-lymphoid organs, such as tumors, due to persistent immune stimulation. TLS house various immune cells, including T cells, B cells and dendritic cells. They play a significant role in local immune responses and have been linked to better patient prognosis in certain types of cancer.')
 
 # Sąsiedztwo kolejnych B-celli
 st.markdown('#### B-cell neighborhood across tissue')
+st.markdown('Heterogeneity of B cell neighborhoods can give us information about the type of a TLS.')
 st.caption('Cells are sorted in ascending order by nucleus position.')
 b_cell_neighbors = analyse_bcell_neighborhood(df)
 st.plotly_chart(b_cell_neighbors)

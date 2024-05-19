@@ -1,8 +1,9 @@
 import os
 import pandas as pd
 
-FILE_PATH = "if_data/"
+"""Funkcje pomocnicze do wczytywania i wizualizacji danych"""
 
+FILE_PATH = 'if_data/'
 
 def standardize_phenotype(phenotype):
     markers = set()
@@ -18,14 +19,14 @@ def get_panel(panel, patient):
     mapping = pd.read_csv(f'dicts/{panel}_phen_to_cell_mapping.csv', sep=',', header=0)
     mapping['phenotype'] = mapping['phenotype'].apply(lambda x: standardize_phenotype(x))
 
-    data = pd.read_csv(FILE_PATH + f"{panel}/" + patient + f"_{panel}.csv", sep=',', header=0, index_col=0)
+    data = pd.read_csv(FILE_PATH + f'{panel}/' + patient + f'_{panel}.csv', sep=',', header=0, index_col=0)
     data['phenotype'] = data['phenotype'].apply(lambda x: standardize_phenotype(x))
     return data.merge(mapping, on='phenotype', how='left')
 
 
 def get_all_patients(panel):
 
-    dir_path = FILE_PATH + f"{panel}/"
+    dir_path = FILE_PATH + f'{panel}/'
     patients = []
 
     for filename in os.listdir(dir_path):

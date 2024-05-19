@@ -1,11 +1,13 @@
 import networkx as nx
 from sklearn import neighbors
+from typing import List, Iterable, Tuple
 from helper import *
 
 CELL_TYPES = ['other', 'CD15-Tumor', 'CD15+Tumor', 'Tcell', 'Bcell', 'BnTcell', 'Macrophage', 'Neutrophil', 'DC']
+PATIENTS = get_all_patients('IF1')
 
 
-def graph_by_cell_type(df, cell_types=None, radius=30):
+def graph_by_cell_type(df: pd.DataFrame, cell_types: Iterable[str] = None, radius: int = 30) -> nx.Graph:
     """Tworzy graf sąsiedztwa dla wybranych typów komórek"""
 
     if cell_types is not None:
@@ -25,28 +27,26 @@ def graph_by_cell_type(df, cell_types=None, radius=30):
     return G
 
 
-def TLS_candidates(df, component_min=20):
-    """Zwraca spójne składowe grafu wzbogacone w komórki odpornościowe"""
-    G_all = graph_by_cell_type(df)
-    all_connected_components = list(nx.connected_components(G_all))
-    all_connected_components = list(filter(lambda x: len(x) >= component_min, all_connected_components))  # filtrujemy na podstawie długości
-    # all_connected_components = [comp for comp in all_connected_comps if len(comp) >= component_min]    
+def TLS_candidates(df: pd.DataFrame, component_min: int = 20) -> Tuple[nx.Graph, List[set]]:
+    """Znajduje spójne składowe oparte na B i T-cellach i dodaje do nich sąsiadów komórek z pełnego grafu"""
 
+    G_all = graph_by_cell_type(df)
     G_TLS_candidates = graph_by_cell_type(df, ['Tcell', 'Bcell', 'BnTcell'])
     TLS_components = list(nx.connected_components(G_TLS_candidates))
+    TLS_components = list(filter(lambda x: len(x) >= component_min, TLS_components))  # filtrujemy po długości
 
-    TLS_components = list(filter(lambda x: len(x) >= component_min, TLS_components))
-    # TLS_components = [comp for comp in TLS_comps if len(comp) >= component_min]   
+    for i in range(len(TLS_components)):
+        component = TLS_components[i]
+        neighbours_set = set()
+        for cell in component:
+            neighbors = list(G_all.neighbors(cell))
+            neighbours_set.update(neighbors)  
+        component.update(neighbours_set)  # dodajemy sąsiadow z ogólnego grafu do składowej
 
-    candidates = set()
-    for candidate in TLS_components:
-        for component in all_connected_components:
-                if any(cell_id in component for cell_id in candidate):  # dodajemy sąsiadów z ogólnego grafu
-                    candidates.add(tuple(component))
-       
-    return G_all, candidates
+    return G_all, TLS_components
 
-def cell_types_in_patient_TLSs(patient, G_all, candidates):
+
+def cell_types_in_patient_TLSs(patient: str, G_all: nx.Graph, candidates: List[set]) -> pd.DataFrame:
     """Zwraca DataFrame z procentowym udziałem poszczególnych typów komórek w kandydatach na TLS u danego pacjenta"""
 
     data = []
@@ -64,19 +64,28 @@ def cell_types_in_patient_TLSs(patient, G_all, candidates):
         celltype_percentage['patient'] = patient
         data.append(celltype_percentage)
 
-    return pd.DataFrame(data)  # zapisujemy do DataFrame
+    return pd.DataFrame(data)
 
 
-if __name__ == '__main__':
-    PATIENTS = get_all_patients('IF1')
+def main() -> None:
+    """Zbiera dane TLS-ów wszystkich pacjentów i zapisuje je do pliku, aby mieć łatwy dostęp do danych"""
+
     df = pd.DataFrame(columns=['patient', 'component_size', 'other', 'CD15-Tumor', 'CD15+Tumor', 'Tcell', 'Bcell', 'BnTcell', 'Macrophage', 'Neutrophil', 'DC'])
 
     for patient in PATIENTS:
-        print(f'PATIENT {patient}')
-        patient_df = get_panel('IF1', patient)  # wszystkie dane pacjenta
-        G_all, candidates = TLS_candidates(patient_df)  # graf sąsiedztwa i kandydaci na TLS (spójne składowe)
-        patient_cell_percentage = cell_types_in_patient_TLSs(patient, G_all, candidates)  # procentowy udział komórek w TLS
-        df = pd.concat((df, patient_cell_percentage), ignore_index=True)  # dodajemy do ogólnej ramki danych
-        print(df)
+        patient_df = get_panel('IF1', patient)
 
-    df.to_csv('if_data/cell_type_percentages_in_TLSs.tsv', sep='\t')
+        # Graf sąsiedztwa i kandydaci na TLS (spójne składowe)
+        G_all, candidates = TLS_candidates(patient_df)  
+
+        # Procentowy udział komórek w TLS
+        patient_cell_percentage = cell_types_in_patient_TLSs(patient, G_all, candidates)  
+
+        # Dodajemy do ogólnej ramki danych
+        df = pd.concat((df, patient_cell_percentage), ignore_index=True)
+
+    df.to_csv('if_data/cell_type_percentages_in_TLS.tsv', sep='\t')
+
+
+if __name__ == '__main__':
+    main()
