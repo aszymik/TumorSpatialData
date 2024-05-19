@@ -25,6 +25,6 @@ Wszystkie wymagane pakiety zapisane są w pliku ```requirements.txt``` i mogą b
 
 ## Uruchamianie
 
-Projekt może zostać uruchomiony następującą komendą:
+Po przejściu do katalogu źródłowego projektu, można uruchomić aplikację następującą komendą:
 
 ```streamlit run app.py```
