@@ -8,7 +8,7 @@ PATIENTS = get_all_patients('IF1')
 
 
 def graph_by_cell_type(df: pd.DataFrame, cell_types: Iterable[str] = None, radius: int = 30) -> nx.Graph:
-    """Tworzy graf sąsiedztwa dla wybranych typów komórek"""
+    """Tworzy graf sąsiedztwa dla wybranych typów komórek."""
 
     if cell_types is not None:
         df = df[df['celltype'].isin(cell_types)]
@@ -28,7 +28,8 @@ def graph_by_cell_type(df: pd.DataFrame, cell_types: Iterable[str] = None, radiu
 
 
 def TLS_candidates(df: pd.DataFrame, component_min: int = 20) -> Tuple[nx.Graph, List[set]]:
-    """Znajduje spójne składowe oparte na B i T-cellach i dodaje do nich sąsiadów komórek z pełnego grafu"""
+    """Znajduje spójne składowe oparte na B i T-cellach i dodaje do nich sąsiadów komórek z pełnego grafu.
+       Zwraca pełny graf sąsiedztwa oraz listę zbiorów – kandydatów na TLS."""
 
     G_all = graph_by_cell_type(df)
     G_TLS_candidates = graph_by_cell_type(df, ['Tcell', 'Bcell', 'BnTcell'])
@@ -47,7 +48,7 @@ def TLS_candidates(df: pd.DataFrame, component_min: int = 20) -> Tuple[nx.Graph,
 
 
 def cell_types_in_patient_TLSs(patient: str, G_all: nx.Graph, candidates: List[set]) -> pd.DataFrame:
-    """Zwraca DataFrame z procentowym udziałem poszczególnych typów komórek w kandydatach na TLS u danego pacjenta"""
+    """Tworzy DataFrame z procentowym udziałem poszczególnych typów komórek w kandydatach na TLS u danego pacjenta"""
 
     data = []
     for component in candidates:
