@@ -1,7 +1,10 @@
 import os
 import pandas as pd
 
-"""Funkcje pomocnicze do wczytywania i wizualizacji danych"""
+"""
+Skrypt z funkcjami pomocniczymi do wczytywania i wizualizacji danych.
+Funkcje standardize_phenotype i get_panel zaadaptowane z https://github.com/D4S1/Tumor-spatial-data-analysis.
+"""
 
 FILE_PATH = 'if_data/'
 
@@ -25,7 +28,6 @@ def get_panel(panel, patient):
 
 
 def get_all_patients(panel):
-
     dir_path = FILE_PATH + f'{panel}/'
     patients = []
 
