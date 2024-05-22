@@ -21,7 +21,7 @@ Projekt składa się z trzech głównych skryptów:
 
 ## Wymagania
 
-Wszystkie wymagane pakiety zapisane są w pliku ```requirements.txt``` i mogą być zainstalować komendą ```pip install requirements.txt```.
+Wszystkie wymagane pakiety zapisane są w pliku ```requirements.txt``` i mogą być zainstalowane komendą ```pip install -r requirements.txt```.
 
 ## Uruchamianie
 
