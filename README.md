@@ -28,3 +28,6 @@ Wszystkie wymagane pakiety zapisane są w pliku ```requirements.txt``` i mogą b
 Po przejściu do katalogu źródłowego projektu, można uruchomić aplikację następującą komendą:
 
 ```streamlit run app.py```
+
+
+Projekt stanowi zadanie zaliczeniowe z Biologii Systemów 2023/2024.
