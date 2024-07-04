@@ -29,5 +29,5 @@ Po przejściu do katalogu źródłowego projektu, można uruchomić aplikację n
 
 ```streamlit run app.py```
 
-
+-----
 Projekt stanowi zadanie zaliczeniowe z Biologii Systemów 2023/2024.
